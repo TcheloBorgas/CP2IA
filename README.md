@@ -3,6 +3,7 @@ Nomes e Rms dos integrantes:
 Marcelo Henrique - Rm: 98893
 Daniel Alves de Souza - Rm: 552310
 Matheus De CAstro Telles - Rm: 98413
+Ricardo Brito rm: 98370
 
 # Análise e Tratamento de Dados de Solicitações de Crédito
 
