@@ -1,51 +1,45 @@
-from flask import Flask, send_file, jsonify, request, render_template
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, roc_curve, auc
-import numpy as np
-import pandas as pd
-import os
-import joblib
-import uuid
-from predicao import predict as prediction_function
-from graficos import plot_model_diagnostics
-from flask_cors import CORS
+import streamlit as st
+import requests
+import json
 
+# Configurações iniciais da API
+API_URL = "http://localhost:5000"  # Modifique conforme necessário para apontar para o seu servidor Flask
 
+def send_prediction_request(data):
+    """Envia uma solicitação de predição para a API e retorna a resposta."""
+    response = requests.post(f"{API_URL}/predict", json=data)
+    return response.json()
 
-app = Flask(__name__,template_folder=r'C:\Users\pytho\Documents\GitHub\CP2IA\template')
-CORS(app)
+def send_generate_plots_request():
+    """Envia uma solicitação para gerar gráficos e retorna as URLs dos gráficos."""
+    response = requests.post(f"{API_URL}/generate_plots", json={})  # Adicione dados necessários para os gráficos
+    return response.json()
 
-# Carregar o modelo (ajuste o caminho conforme necessário)
-model = joblib.load(r'C:\Users\pytho\Documents\GitHub\CP2IA\Model\modelo_melhor_salvo.pkl')
+# Título da Aplicação
+st.title('API de Modelo de Predição')
 
+# Entradas para predição
+st.header('Enviar dados para predição')
+margem_bruta = st.text_input('Margem Bruta Acumulada', '0.3')
+faturamento_bruto = st.text_input('Faturamento Bruto', '500000')
+percentual_risco = st.text_input('Percentual de Risco', '0.1')
 
-@app.route('/hello')
-def hello():
-    return "Hello World!"
+# Botão para enviar predição
+if st.button('Fazer Predição'):
+    prediction_data = {
+        "margemBrutaAcumulada": float(margem_bruta),
+        "faturamentoBruto": float(faturamento_bruto),
+        "percentualRisco": float(percentual_risco)
+    }
+    result = send_prediction_request(prediction_data)
+    st.write('Resultado da Predição:', result)
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Botão para gerar gráficos
+st.header('Gerar Gráficos Diagnósticos')
+if st.button('Gerar Gráficos'):
+    plot_urls = send_generate_plots_request()
+    if 'urls' in plot_urls:
+        for url in plot_urls['urls']:
+            st.image(url)
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    return prediction_function(model)
-
-@app.route('/generate_plots', methods=['POST'])
-def generate_plots():
-    data = request.get_json()
-    X_test = pd.DataFrame(data['X_test'])
-    y_test = pd.Series(data['y_test'])
-    identifier = uuid.uuid4().hex  # Gera um identificador único para cada requisição
-
-    # Gerar gráficos
-    filenames = plot_model_diagnostics(model, X_test, y_test, identifier)
-    return jsonify({'urls': [f'{request.host_url}{filename}' for filename in filenames]})
-
-@app.route('/plots/<path:filename>')
-def get_plot(filename):
-    return send_file(filename, mimetype='image/png')
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+# Rodar a aplicação com `streamlit run app_streamlit.py` a partir do terminal
